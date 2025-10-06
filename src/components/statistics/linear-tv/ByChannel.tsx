@@ -22,6 +22,8 @@ const ByChannel = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedChannel, setSelectedChannel] = useState("Star Plus");
+  const [compareChannel1, setCompareChannel1] = useState("Star Plus");
+  const [compareChannel2, setCompareChannel2] = useState("Colors TV");
 
   const channelData: ChannelData[] = [
     { channelName: "Star Plus", viewingTime: "145:30:00", rating: 8.5, tvr: 12.5, shares: 15.2, hits: 45000 },
@@ -35,32 +37,101 @@ const ByChannel = () => {
     channel.channelName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const top10ChartOptions: ApexOptions = {
-    chart: { type: "bar", toolbar: { show: false } },
-    plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
-    dataLabels: { enabled: false },
-    colors: ["#6366f1", "#8b5cf6"],
-    xaxis: { categories: channelData.map((c) => c.channelName) },
+  // Generate time labels from 00:00 to 23:30
+  const generateTimeLabels = () => {
+    const labels = [];
+    for (let hour = 0; hour < 24; hour++) {
+      labels.push(`${hour.toString().padStart(2, '0')}:00`);
+      labels.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    return labels;
   };
 
-  const top10Series = [
-    { name: "Rating", data: channelData.map((c) => c.rating) },
-    { name: "Shares", data: channelData.map((c) => c.shares) },
+  const timeLabels = generateTimeLabels();
+
+  // Wave chart for viewing set-top boxes timeline
+  const viewingTimelineOptions: ApexOptions = {
+    chart: { type: "area", stacked: true, toolbar: { show: true } },
+    dataLabels: { enabled: false },
+    colors: ["#6366f1"],
+    stroke: { curve: "smooth", width: 2 },
+    xaxis: { 
+      categories: timeLabels,
+      labels: { rotate: -45, rotateAlways: false }
+    },
+    yaxis: { title: { text: "Viewing Set-top Boxes" } },
+    fill: { 
+      type: "gradient", 
+      gradient: { opacityFrom: 0.6, opacityTo: 0.2 } 
+    },
+    tooltip: { x: { format: 'HH:mm' } }
+  };
+
+  const generateRandomViewingData = () => {
+    return timeLabels.map((_, index) => {
+      const hour = Math.floor(index / 2);
+      if (hour >= 6 && hour <= 10) return Math.floor(Math.random() * 3000) + 5000;
+      if (hour >= 18 && hour <= 23) return Math.floor(Math.random() * 5000) + 7000;
+      return Math.floor(Math.random() * 2000) + 2000;
+    });
+  };
+
+  const viewingTimelineSeries = [
+    { name: "Viewing Set-top Boxes", data: generateRandomViewingData() }
   ];
 
-  const timelineOptions: ApexOptions = {
-    chart: { type: "area", stacked: true, toolbar: { show: false } },
+  // Single channel bar chart
+  const singleChannelOptions: ApexOptions = {
+    chart: { type: "bar", toolbar: { show: false } },
+    plotOptions: { bar: { horizontal: false, borderRadius: 8, columnWidth: "50%" } },
     dataLabels: { enabled: false },
     colors: ["#6366f1", "#8b5cf6"],
-    xaxis: {
-      categories: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
-    },
-    fill: { type: "gradient", gradient: { opacityFrom: 0.6, opacityTo: 0.2 } },
+    xaxis: { categories: ["Rating", "Shares"] },
+    yaxis: { title: { text: "Values" } }
   };
 
-  const timelineSeries = [
-    { name: "Rating", data: [3.5, 2.8, 5.2, 7.8, 6.5, 8.5, 4.2] },
-    { name: "Shares", data: [8.2, 6.5, 10.5, 15.2, 13.8, 18.5, 9.8] },
+  const selectedChannelData = channelData.find(c => c.channelName === selectedChannel);
+  const singleChannelSeries = [{
+    name: selectedChannel,
+    data: [selectedChannelData?.rating || 0, selectedChannelData?.shares || 0]
+  }];
+
+  // Compare channels bar chart
+  const compareBarOptions: ApexOptions = {
+    chart: { type: "bar", toolbar: { show: false } },
+    plotOptions: { bar: { horizontal: false, borderRadius: 8 } },
+    dataLabels: { enabled: false },
+    colors: ["#6366f1", "#8b5cf6"],
+    xaxis: { categories: ["Rating", "Shares"] }
+  };
+
+  const channel1Data = channelData.find(c => c.channelName === compareChannel1);
+  const channel2Data = channelData.find(c => c.channelName === compareChannel2);
+
+  const compareBarSeries = [
+    { name: compareChannel1, data: [channel1Data?.rating || 0, channel1Data?.shares || 0] },
+    { name: compareChannel2, data: [channel2Data?.rating || 0, channel2Data?.shares || 0] }
+  ];
+
+  // Compare channels timeline
+  const compareTimelineOptions: ApexOptions = {
+    chart: { type: "area", stacked: false, toolbar: { show: true } },
+    dataLabels: { enabled: false },
+    colors: ["#6366f1", "#8b5cf6"],
+    stroke: { curve: "smooth", width: 2 },
+    xaxis: { 
+      categories: timeLabels,
+      labels: { rotate: -45 }
+    },
+    fill: { 
+      type: "gradient", 
+      gradient: { opacityFrom: 0.6, opacityTo: 0.2 } 
+    }
+  };
+
+  const compareTimelineSeries = [
+    { name: compareChannel1, data: generateRandomViewingData() },
+    { name: compareChannel2, data: generateRandomViewingData() }
   ];
 
   const exportToExcel = () => {
@@ -103,6 +174,21 @@ const ByChannel = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Viewing Timeline Wave Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline of Viewing Set-top Boxes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReactApexChart 
+            options={viewingTimelineOptions} 
+            series={viewingTimelineSeries} 
+            type="area" 
+            height={350} 
+          />
+        </CardContent>
+      </Card>
 
       {/* Channel Table */}
       <Card>
@@ -156,13 +242,27 @@ const ByChannel = () => {
         </CardContent>
       </Card>
 
-      {/* Top 10 Chart */}
+      {/* Top 10 Channels */}
       <Card>
         <CardHeader>
           <CardTitle>Top 10 Channels by Rating & Shares</CardTitle>
         </CardHeader>
         <CardContent>
-          <ReactApexChart options={top10ChartOptions} series={top10Series} type="bar" height={350} />
+          <ReactApexChart 
+            options={{
+              chart: { type: "bar", toolbar: { show: false } },
+              plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
+              dataLabels: { enabled: false },
+              colors: ["#6366f1", "#8b5cf6"],
+              xaxis: { categories: channelData.map((c) => c.channelName) }
+            }} 
+            series={[
+              { name: "Rating", data: channelData.map((c) => c.rating) },
+              { name: "Shares", data: channelData.map((c) => c.shares) }
+            ]} 
+            type="bar" 
+            height={350} 
+          />
         </CardContent>
       </Card>
 
@@ -186,7 +286,71 @@ const ByChannel = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <ReactApexChart options={timelineOptions} series={timelineSeries} type="area" height={300} />
+          <ReactApexChart 
+            options={singleChannelOptions} 
+            series={singleChannelSeries} 
+            type="bar" 
+            height={300} 
+          />
+        </CardContent>
+      </Card>
+
+      {/* Compare Channels Bar Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Compare Channels</CardTitle>
+            <div className="flex gap-2">
+              <Select value={compareChannel1} onValueChange={setCompareChannel1}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {channelData.map((channel) => (
+                    <SelectItem key={channel.channelName} value={channel.channelName}>
+                      {channel.channelName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="self-center">vs</span>
+              <Select value={compareChannel2} onValueChange={setCompareChannel2}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {channelData.map((channel) => (
+                    <SelectItem key={channel.channelName} value={channel.channelName}>
+                      {channel.channelName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ReactApexChart 
+            options={compareBarOptions} 
+            series={compareBarSeries} 
+            type="bar" 
+            height={300} 
+          />
+        </CardContent>
+      </Card>
+
+      {/* Compare Channels Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Compare Channels Timeline (00:00 - 23:30)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReactApexChart 
+            options={compareTimelineOptions} 
+            series={compareTimelineSeries} 
+            type="area" 
+            height={350} 
+          />
         </CardContent>
       </Card>
     </div>

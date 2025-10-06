@@ -37,11 +37,14 @@ const OnlineContent = () => {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
     dataLabels: { enabled: false },
-    colors: ["#0ea5e9"],
+    colors: ["#0ea5e9", "#8b5cf6"],
     xaxis: { categories: contentData.map((c) => c.contentTitle) },
   };
 
-  const top10Series = [{ name: "Rating", data: contentData.map((c) => c.rating) }];
+  const top10Series = [
+    { name: "Rating", data: contentData.map((c) => c.rating) },
+    { name: "Shares", data: contentData.map((c) => c.rating * 1.8) }
+  ];
 
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredData);

@@ -28,6 +28,11 @@ const ByProgram = () => {
     { programTitle: "Taarak Mehta", channelName: "Sony TV", viewingTime: "40:45:00", hits: 22000, rating: 8.5 },
     { programTitle: "Yeh Rishta", channelName: "Star Plus", viewingTime: "38:20:00", hits: 21000, rating: 8.2 },
     { programTitle: "Kundali Bhagya", channelName: "Zee TV", viewingTime: "35:10:00", hits: 19000, rating: 7.9 },
+    { programTitle: "Kumkum Bhagya", channelName: "Zee TV", viewingTime: "33:45:00", hits: 18500, rating: 7.6 },
+    { programTitle: "Naagin", channelName: "Colors TV", viewingTime: "32:30:00", hits: 18000, rating: 7.4 },
+    { programTitle: "Sasural Simar Ka", channelName: "Colors TV", viewingTime: "31:15:00", hits: 17500, rating: 7.2 },
+    { programTitle: "Imlie", channelName: "Star Plus", viewingTime: "30:00:00", hits: 17000, rating: 7.0 },
+    { programTitle: "Ghum Hai", channelName: "Star Plus", viewingTime: "29:45:00", hits: 16500, rating: 6.8 },
   ];
 
   const filteredData = programData.filter(
@@ -36,29 +41,61 @@ const ByProgram = () => {
       program.channelName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Top 10 programs bar chart
   const top10ChartOptions: ApexOptions = {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
     dataLabels: { enabled: false },
-    colors: ["#10b981"],
-    xaxis: { categories: programData.map((p) => p.programTitle) },
+    colors: ["#10b981", "#8b5cf6"],
+    xaxis: { categories: programData.map((p) => p.programTitle) }
   };
 
-  const top10Series = [{ name: "Rating", data: programData.map((p) => p.rating) }];
+  const top10Series = [
+    { name: "Rating", data: programData.map((p) => p.rating) },
+    { name: "Shares", data: programData.map((p) => p.rating * 2) }
+  ];
+
+  // Generate time labels from 00:00 to 23:30
+  const generateTimeLabels = () => {
+    const labels = [];
+    for (let hour = 0; hour < 24; hour++) {
+      labels.push(`${hour.toString().padStart(2, '0')}:00`);
+      labels.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    return labels;
+  };
+
+  const timeLabels = generateTimeLabels();
+
+  // Program timeline with time-based data (00:00 to 23:30)
+  const generateProgramTimelineData = () => {
+    return timeLabels.map((_, index) => {
+      const hour = Math.floor(index / 2);
+      if (hour >= 19 && hour <= 22) return Math.floor(Math.random() * 3) + 7;
+      if (hour >= 12 && hour <= 14) return Math.floor(Math.random() * 2) + 5;
+      return Math.floor(Math.random() * 2) + 2;
+    });
+  };
 
   const timelineOptions: ApexOptions = {
-    chart: { type: "area", stacked: true, toolbar: { show: false } },
+    chart: { type: "area", stacked: true, toolbar: { show: true } },
     dataLabels: { enabled: false },
     colors: ["#10b981", "#8b5cf6"],
+    stroke: { curve: "smooth", width: 2 },
     xaxis: {
-      categories: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      categories: timeLabels,
+      labels: { rotate: -45 }
     },
-    fill: { type: "gradient", gradient: { opacityFrom: 0.6, opacityTo: 0.2 } },
+    yaxis: { title: { text: "Rating" } },
+    fill: { 
+      type: "gradient", 
+      gradient: { opacityFrom: 0.6, opacityTo: 0.2 } 
+    }
   };
 
   const timelineSeries = [
-    { name: "Rating", data: [7.5, 8.2, 8.8, 9.2, 8.9, 9.5, 8.7] },
-    { name: "Shares", data: [15.2, 16.5, 17.8, 18.5, 17.9, 19.2, 17.5] },
+    { name: "Rating", data: generateProgramTimelineData() },
+    { name: "Shares", data: generateProgramTimelineData().map(v => v * 1.5) }
   ];
 
   const exportToExcel = () => {
@@ -125,21 +162,21 @@ const ByProgram = () => {
         </CardContent>
       </Card>
 
-      {/* Top 10 Chart */}
+      {/* Top 10 Programs Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Top 10 Programs by Rating</CardTitle>
+          <CardTitle>Top 10 Programs by Rating & Shares</CardTitle>
         </CardHeader>
         <CardContent>
           <ReactApexChart options={top10ChartOptions} series={top10Series} type="bar" height={350} />
         </CardContent>
       </Card>
 
-      {/* Single Program Timeline */}
+      {/* Program Timeline Analysis (00:00 to 23:30) */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Program Timeline Analysis</CardTitle>
+            <CardTitle>Program Timeline Analysis (00:00 - 23:30)</CardTitle>
             <Select value={selectedProgram} onValueChange={setSelectedProgram}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select program" />
@@ -155,7 +192,7 @@ const ByProgram = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <ReactApexChart options={timelineOptions} series={timelineSeries} type="area" height={300} />
+          <ReactApexChart options={timelineOptions} series={timelineSeries} type="area" height={350} />
         </CardContent>
       </Card>
     </div>
