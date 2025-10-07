@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Search } from "lucide-react";
+import { Download, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -19,41 +19,27 @@ interface DeviceAction {
 const DeviceActionHistory = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jumpToPage, setJumpToPage] = useState("");
+  const itemsPerPage = 10;
 
-  const actions: DeviceAction[] = [
-    {
-      action: "Restart Device",
-      performedBy: "Admin User",
-      deviceId: "DEV-12345",
-      result: "Success",
-      datePerformed: "2024-01-20 10:30:00",
-      dateCompleted: "2024-01-20 10:31:00",
-    },
-    {
-      action: "Update Firmware",
-      performedBy: "System Admin",
-      deviceId: "DEV-12346",
-      result: "Success",
-      datePerformed: "2024-01-20 09:15:00",
-      dateCompleted: "2024-01-20 09:25:00",
-    },
-    {
-      action: "Factory Reset",
-      performedBy: "Tech Support",
-      deviceId: "DEV-12347",
-      result: "Failed",
-      datePerformed: "2024-01-19 14:20:00",
-      dateCompleted: "2024-01-19 14:21:00",
-    },
-    {
-      action: "Network Configuration",
-      performedBy: "Network Admin",
-      deviceId: "DEV-12348",
-      result: "Success",
-      datePerformed: "2024-01-19 11:00:00",
-      dateCompleted: "2024-01-19 11:05:00",
-    },
-  ];
+  // Generate 100 mock records
+  const generateActions = (): DeviceAction[] => {
+    const actionTypes = ["Restart Device", "Update Firmware", "Factory Reset", "Network Configuration", "Software Update"];
+    const performers = ["Admin User", "System Admin", "Tech Support", "Network Admin", "Supervisor"];
+    const results = ["Success", "Failed"];
+    
+    return Array.from({ length: 100 }, (_, i) => ({
+      action: actionTypes[i % actionTypes.length],
+      performedBy: performers[i % performers.length],
+      deviceId: `DEV-${12345 + i}`,
+      result: results[i % 3 === 0 ? 1 : 0],
+      datePerformed: `2024-01-${(i % 28) + 1} ${(i % 24).toString().padStart(2, '0')}:${(i % 60).toString().padStart(2, '0')}:00`,
+      dateCompleted: `2024-01-${(i % 28) + 1} ${((i % 24) + 1).toString().padStart(2, '0')}:${((i % 60) + 5).toString().padStart(2, '0')}:00`,
+    }));
+  };
+
+  const actions: DeviceAction[] = generateActions();
 
   const filteredActions = actions.filter(
     (action) =>
@@ -61,6 +47,19 @@ const DeviceActionHistory = () => {
       action.deviceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       action.performedBy.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredActions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentActions = filteredActions.slice(startIndex, endIndex);
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpToPage);
+    if (pageNum >= 1 && pageNum <= totalPages) {
+      setCurrentPage(pageNum);
+      setJumpToPage("");
+    }
+  };
 
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredActions);
@@ -110,8 +109,8 @@ const DeviceActionHistory = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredActions.map((action, index) => (
-                <tr key={index} className="border-b hover:bg-muted/30 transition-colors">
+              {currentActions.map((action, index) => (
+                <tr key={index} className="border-b hover:bg-primary/5 transition-colors">
                   <td className="p-3 font-medium">{action.action}</td>
                   <td className="p-3">{action.performedBy}</td>
                   <td className="p-3 font-mono text-sm">{action.deviceId}</td>
@@ -129,6 +128,58 @@ const DeviceActionHistory = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredActions.length)} of {filteredActions.length} entries
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="border-primary/30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Page {currentPage} of {totalPages}</span>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  placeholder="Jump"
+                  value={jumpToPage}
+                  onChange={(e) => setJumpToPage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
+                  className="w-16 h-8 text-sm border-primary/30"
+                  min={1}
+                  max={totalPages}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleJumpToPage}
+                  className="h-8 border-primary/30"
+                >
+                  Go
+                </Button>
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="border-primary/30"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
