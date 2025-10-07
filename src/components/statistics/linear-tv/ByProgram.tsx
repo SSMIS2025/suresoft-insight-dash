@@ -46,7 +46,7 @@ const ByProgram = () => {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
     dataLabels: { enabled: false },
-    colors: ["#10b981", "#8b5cf6"],
+    colors: ["hsl(var(--chart-1))", "hsl(var(--chart-2))"],
     xaxis: { categories: programData.map((p) => p.programTitle) }
   };
 
@@ -80,7 +80,7 @@ const ByProgram = () => {
   const timelineOptions: ApexOptions = {
     chart: { type: "area", stacked: true, toolbar: { show: true } },
     dataLabels: { enabled: false },
-    colors: ["#10b981", "#8b5cf6"],
+    colors: ["hsl(var(--chart-3))", "hsl(var(--chart-4))"],
     stroke: { curve: "smooth", width: 2 },
     xaxis: {
       categories: timeLabels,

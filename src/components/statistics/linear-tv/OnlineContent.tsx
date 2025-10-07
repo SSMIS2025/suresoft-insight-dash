@@ -37,7 +37,7 @@ const OnlineContent = () => {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
     dataLabels: { enabled: false },
-    colors: ["#0ea5e9", "#8b5cf6"],
+    colors: ["hsl(var(--chart-1))", "hsl(var(--chart-2))"],
     xaxis: { categories: contentData.map((c) => c.contentTitle) },
   };
 

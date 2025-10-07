@@ -99,43 +99,29 @@ const Statistics = () => {
             </Select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">From Date</label>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium mb-2 block">Date Range</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal border-primary/30">
                   <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                  {fromDate ? formatDateDisplay(fromDate) : "Pick a date"}
+                  {fromDate && toDate 
+                    ? `${formatDateDisplay(fromDate)} - ${formatDateDisplay(toDate)}` 
+                    : "Select date range"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  mode="single"
-                  selected={fromDate}
-                  onSelect={(date) => date && setFromDate(date)}
+                  mode="range"
+                  selected={{ from: fromDate, to: toDate }}
+                  onSelect={(range) => {
+                    if (range?.from) setFromDate(range.from);
+                    if (range?.to) setToDate(range.to);
+                  }}
+                  disabled={(date) => date > new Date()}
                   initialFocus
                   className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">To Date</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal border-primary/30">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                  {toDate ? formatDateDisplay(toDate) : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={toDate}
-                  onSelect={(date) => date && setToDate(date)}
-                  initialFocus
-                  className="pointer-events-auto"
+                  numberOfMonths={2}
                 />
               </PopoverContent>
             </Popover>

@@ -135,50 +135,131 @@ const DeviceActionHistory = () => {
           <div className="text-sm text-muted-foreground">
             Showing {startIndex + 1} to {Math.min(endIndex, filteredActions.length)} of {filteredActions.length} entries
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="border-primary/30"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm">Page {currentPage} of {totalPages}</span>
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  placeholder="Jump"
-                  value={jumpToPage}
-                  onChange={(e) => setJumpToPage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
-                  className="w-16 h-8 text-sm border-primary/30"
-                  min={1}
-                  max={totalPages}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleJumpToPage}
-                  className="h-8 border-primary/30"
-                >
-                  Go
-                </Button>
-              </div>
+              <span className="text-sm text-muted-foreground">Jump to:</span>
+              <Input
+                type="number"
+                value={jumpToPage}
+                onChange={(e) => setJumpToPage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
+                className="w-16 h-8 text-sm border-primary/30"
+                min={1}
+                max={totalPages}
+              />
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="border-primary/30"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="border-primary/30"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              {/* Page Numbers */}
+              {(() => {
+                const pages = [];
+                const showEllipsisStart = currentPage > 3;
+                const showEllipsisEnd = currentPage < totalPages - 2;
+                
+                // Always show first page
+                pages.push(
+                  <Button
+                    key={1}
+                    variant={currentPage === 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    className={currentPage === 1 ? "bg-gradient-to-r from-primary to-secondary text-white" : "border-primary/30"}
+                  >
+                    1
+                  </Button>
+                );
+                
+                // Show ellipsis or page 2
+                if (showEllipsisStart) {
+                  pages.push(<span key="ellipsis-start" className="px-2 text-muted-foreground">...</span>);
+                } else if (totalPages > 1) {
+                  pages.push(
+                    <Button
+                      key={2}
+                      variant={currentPage === 2 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(2)}
+                      className={currentPage === 2 ? "bg-gradient-to-r from-primary to-secondary text-white" : "border-primary/30"}
+                    >
+                      2
+                    </Button>
+                  );
+                }
+                
+                // Show middle pages
+                const start = Math.max(3, currentPage - 1);
+                const end = Math.min(totalPages - 2, currentPage + 1);
+                
+                for (let i = start; i <= end; i++) {
+                  if (i > 1 && i < totalPages) {
+                    pages.push(
+                      <Button
+                        key={i}
+                        variant={currentPage === i ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(i)}
+                        className={currentPage === i ? "bg-gradient-to-r from-primary to-secondary text-white" : "border-primary/30"}
+                      >
+                        {i}
+                      </Button>
+                    );
+                  }
+                }
+                
+                // Show ellipsis or second-to-last page
+                if (showEllipsisEnd) {
+                  pages.push(<span key="ellipsis-end" className="px-2 text-muted-foreground">...</span>);
+                } else if (totalPages > 2 && totalPages - 1 > end) {
+                  pages.push(
+                    <Button
+                      key={totalPages - 1}
+                      variant={currentPage === totalPages - 1 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages - 1)}
+                      className={currentPage === totalPages - 1 ? "bg-gradient-to-r from-primary to-secondary text-white" : "border-primary/30"}
+                    >
+                      {totalPages - 1}
+                    </Button>
+                  );
+                }
+                
+                // Always show last page if there's more than one page
+                if (totalPages > 1) {
+                  pages.push(
+                    <Button
+                      key={totalPages}
+                      variant={currentPage === totalPages ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={currentPage === totalPages ? "bg-gradient-to-r from-primary to-secondary text-white" : "border-primary/30"}
+                    >
+                      {totalPages}
+                    </Button>
+                  );
+                }
+                
+                return pages;
+              })()}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="border-primary/30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>

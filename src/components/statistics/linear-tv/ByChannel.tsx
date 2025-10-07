@@ -53,7 +53,7 @@ const ByChannel = () => {
   const viewingTimelineOptions: ApexOptions = {
     chart: { type: "area", stacked: true, toolbar: { show: true } },
     dataLabels: { enabled: false },
-    colors: ["#6366f1"],
+    colors: ["hsl(var(--chart-1))"],
     stroke: { curve: "smooth", width: 2 },
     xaxis: { 
       categories: timeLabels,
@@ -85,7 +85,7 @@ const ByChannel = () => {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: false, borderRadius: 8, columnWidth: "50%" } },
     dataLabels: { enabled: false },
-    colors: ["#6366f1", "#8b5cf6"],
+    colors: ["hsl(var(--chart-1))", "hsl(var(--chart-2))"],
     xaxis: { categories: ["Rating", "Shares"] },
     yaxis: { title: { text: "Values" } }
   };
@@ -101,7 +101,7 @@ const ByChannel = () => {
     chart: { type: "bar", toolbar: { show: false } },
     plotOptions: { bar: { horizontal: false, borderRadius: 8 } },
     dataLabels: { enabled: false },
-    colors: ["#6366f1", "#8b5cf6"],
+    colors: ["hsl(var(--chart-3))", "hsl(var(--chart-4))"],
     xaxis: { categories: ["Rating", "Shares"] }
   };
 
@@ -117,7 +117,7 @@ const ByChannel = () => {
   const compareTimelineOptions: ApexOptions = {
     chart: { type: "area", stacked: false, toolbar: { show: true } },
     dataLabels: { enabled: false },
-    colors: ["#6366f1", "#8b5cf6"],
+    colors: ["hsl(var(--chart-3))", "hsl(var(--chart-4))"],
     stroke: { curve: "smooth", width: 2 },
     xaxis: { 
       categories: timeLabels,
@@ -253,9 +253,9 @@ const ByChannel = () => {
               chart: { type: "bar", toolbar: { show: false } },
               plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
               dataLabels: { enabled: false },
-              colors: ["#6366f1", "#8b5cf6"],
+              colors: ["hsl(var(--chart-1))", "hsl(var(--chart-2))"],
               xaxis: { categories: channelData.map((c) => c.channelName) }
-            }} 
+            }}
             series={[
               { name: "Rating", data: channelData.map((c) => c.rating) },
               { name: "Shares", data: channelData.map((c) => c.shares) }
