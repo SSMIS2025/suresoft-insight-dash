@@ -9,7 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
-  const [month, setMonth] = React.useState<Date>(props.selected as Date || new Date());
+  const getInitialMonth = () => {
+    if (props.selected && typeof props.selected === 'object' && 'from' in props.selected) {
+      return props.selected.from || new Date();
+    }
+    return props.selected as Date || new Date();
+  };
+  
+  const [month, setMonth] = React.useState<Date>(getInitialMonth());
 
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 50 + i);
   const months = [

@@ -67,7 +67,22 @@ const Statistics = () => {
           <Filter className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold text-primary">Filters</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Device Category</label>
+            <Select defaultValue="all">
+              <SelectTrigger className="border-primary/30 focus:ring-primary">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="stb">Set-Top Box</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="ott">OTT Device</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-2 block">Province/Region</label>
             <Select value={province} onValueChange={setProvince}>

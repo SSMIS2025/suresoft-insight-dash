@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, BarChart3, LogOut } from "lucide-react";
+import { Home, BarChart3, Monitor, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -82,6 +82,14 @@ const Layout = ({ children }: LayoutProps) => {
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Statistics
+            </Button>
+            <Button
+              variant={isActive("/devices") ? "default" : "ghost"}
+              className="justify-start"
+              onClick={() => navigate("/devices")}
+            >
+              <Monitor className="h-4 w-4 mr-2" />
+              Devices
             </Button>
           </nav>
         </aside>
