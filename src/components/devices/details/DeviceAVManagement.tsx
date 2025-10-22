@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RefreshCw, Video } from "lucide-react";
+import ImageCarousel from "@/components/ImageCarousel";
+import device1 from "@/assets/device-1.jpg";
+import device2 from "@/assets/device-2.jpg";
+import device3 from "@/assets/device-3.jpg";
+import device4 from "@/assets/device-4.jpg";
 
 interface DeviceAVManagementProps {
   stbId: string;
@@ -16,6 +21,8 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
   const [hdmiConnected, setHdmiConnected] = useState(true);
   const [osdMessage, setOsdMessage] = useState("");
   const [osdType, setOsdType] = useState("info");
+
+  const deviceImages = [device1, device2, device3, device4];
 
   const deviceInfo = {
     model: "STB-PRO-4K",
@@ -93,20 +100,18 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
           </CardContent>
         </Card>
 
-        {/* STB Animation Card */}
+        {/* Device Images Card */}
         <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle>Device Status</CardTitle>
+            <CardTitle>Device Gallery</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-8 space-x-4">
-              <div className="text-5xl animate-pulse">📺</div>
-              <div className="text-5xl animate-pulse animation-delay-200">📺</div>
-              <div className="text-5xl animate-pulse animation-delay-400">📺</div>
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              Multiple devices active
-            </p>
+            <ImageCarousel 
+              images={deviceImages} 
+              autoSlide={true} 
+              slideInterval={4000}
+              className="h-40"
+            />
           </CardContent>
         </Card>
       </div>

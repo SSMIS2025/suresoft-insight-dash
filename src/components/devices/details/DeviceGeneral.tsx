@@ -2,6 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Cpu, MemoryStick, HardDrive, Thermometer, Clock, Radio, Activity } from "lucide-react";
+import ImageCarousel from "@/components/ImageCarousel";
+import device1 from "@/assets/device-1.jpg";
+import device2 from "@/assets/device-2.jpg";
+import device3 from "@/assets/device-3.jpg";
+import device4 from "@/assets/device-4.jpg";
 
 interface DeviceGeneralProps {
   stbId: string;
@@ -39,6 +44,8 @@ const DeviceGeneral = ({ stbId }: DeviceGeneralProps) => {
     },
   };
 
+  const deviceImages = [device1, device2, device3, device4];
+
   const getPerformanceColor = (value: number) => {
     if (value >= 80) return "hsl(var(--destructive))";
     if (value >= 60) return "hsl(var(--warning))";
@@ -56,10 +63,13 @@ const DeviceGeneral = ({ stbId }: DeviceGeneralProps) => {
             </div>
             <p className="text-sm text-muted-foreground">Serial: {deviceInfo.serialNumber}</p>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <div className="w-48 h-48 gradient-primary rounded-lg flex items-center justify-center shadow-lg">
-              <div className="text-6xl">📺</div>
-            </div>
+          <CardContent>
+            <ImageCarousel 
+              images={deviceImages} 
+              autoSlide={true} 
+              slideInterval={3000}
+              className="h-48"
+            />
           </CardContent>
         </Card>
 
