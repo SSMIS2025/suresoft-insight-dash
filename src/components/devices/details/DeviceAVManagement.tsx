@@ -18,9 +18,10 @@ interface DeviceAVManagementProps {
 const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
   const [approvalRequested, setApprovalRequested] = useState(false);
   const [remoteViewOpen, setRemoteViewOpen] = useState(false);
-  const [hdmiConnected, setHdmiConnected] = useState(true);
+  const [hdmiConnected, setHdmiConnected] = useState(false);
   const [osdMessage, setOsdMessage] = useState("");
   const [osdType, setOsdType] = useState("info");
+  const [timeRemaining, setTimeRemaining] = useState(60);
 
   const deviceImages = [device1, device2, device3, device4];
 
@@ -38,12 +39,31 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
   };
 
   const handleRequestApproval = () => {
+    if (!hdmiConnected) {
+      return;
+    }
     setApprovalRequested(true);
-    // Simulate approval after 2 seconds
+    setTimeRemaining(60);
+    
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setApprovalRequested(false);
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Simulate approval after 5 seconds
     setTimeout(() => {
+      clearInterval(countdownInterval);
       setRemoteViewOpen(true);
       setApprovalRequested(false);
-    }, 2000);
+      setTimeRemaining(60);
+    }, 5000);
   };
 
   const handleSendOSD = () => {
@@ -61,13 +81,23 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
             <CardTitle>Remote View Access</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Click the "Request Approval" button below to request the customer's approval to connect to the remote view source
+            <p className="text-sm text-muted-foreground mb-2">
+              {hdmiConnected 
+                ? "Click the \"Request Approval\" button below to request the customer's approval to connect to the remote view source"
+                : "HDMI must be connected before requesting approval. Click the refresh button on HDMI Information card to connect."}
             </p>
+            {approvalRequested && (
+              <div className="mb-4 p-4 bg-primary/10 rounded-lg border border-primary/30">
+                <div className="text-center">
+                  <p className="text-sm font-medium mb-2">Waiting for customer approval...</p>
+                  <div className="text-3xl font-bold text-primary">{timeRemaining}s</div>
+                </div>
+              </div>
+            )}
             <Button 
-              className="w-full bg-gradient-to-r from-primary to-secondary"
+              className="w-full bg-gradient-to-r from-primary to-secondary disabled:opacity-50"
               onClick={handleRequestApproval}
-              disabled={approvalRequested}
+              disabled={approvalRequested || !hdmiConnected}
             >
               {approvalRequested ? "Waiting for approval..." : "Request Approval"}
             </Button>
@@ -253,17 +283,108 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
       {/* Remote View Dialog */}
       <Dialog open={remoteViewOpen} onOpenChange={setRemoteViewOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-7xl">
           <DialogHeader>
             <DialogTitle>Remote View - {stbId}</DialogTitle>
           </DialogHeader>
-          <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <Video className="h-16 w-16 mx-auto text-primary animate-pulse" />
-              <p className="text-lg font-medium">Remote view stream would appear here</p>
-              <p className="text-sm text-muted-foreground">
-                Streaming via MQTT protocol → Server → WebSocket → Client
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Video Stream - Left Side */}
+            <div className="lg:col-span-2">
+              <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg flex items-center justify-center border-2 border-primary/20">
+                <div className="text-center space-y-4">
+                  <Video className="h-16 w-16 mx-auto text-primary animate-pulse" />
+                  <p className="text-lg font-medium">Remote view stream would appear here</p>
+                  <p className="text-sm text-muted-foreground">
+                    Streaming via MQTT protocol → Server → WebSocket → Client
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* RCU Control - Right Side */}
+            <div className="flex flex-col items-center justify-center">
+              <div className="bg-gradient-to-br from-card to-primary/5 p-6 rounded-2xl border-2 border-primary/30 shadow-lg">
+                <h3 className="text-center font-semibold mb-4 text-primary">Remote Control Unit</h3>
+                
+                {/* RCU Design */}
+                <div className="w-64 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-6 shadow-2xl">
+                  {/* Power Button */}
+                  <div className="flex justify-center mb-6">
+                    <button className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Navigation Buttons */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    <div></div>
+                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
+                      ▲
+                    </button>
+                    <div></div>
+                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
+                      ◄
+                    </button>
+                    <button className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center text-white text-xs font-semibold">
+                      OK
+                    </button>
+                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
+                      ►
+                    </button>
+                    <div></div>
+                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
+                      ▼
+                    </button>
+                    <div></div>
+                  </div>
+
+                  {/* Volume and Channel Buttons */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="space-y-2">
+                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
+                        VOL +
+                      </button>
+                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
+                        VOL -
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
+                        CH +
+                      </button>
+                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
+                        CH -
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Playback Controls */}
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
+                      ⏮
+                    </button>
+                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
+                      ⏸
+                    </button>
+                    <button className="py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors text-white text-xs">
+                      ▶
+                    </button>
+                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
+                      ⏭
+                    </button>
+                  </div>
+
+                  {/* Color Buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <button className="h-8 rounded-lg bg-red-600 hover:bg-red-700 transition-colors"></button>
+                    <button className="h-8 rounded-lg bg-green-600 hover:bg-green-700 transition-colors"></button>
+                    <button className="h-8 rounded-lg bg-yellow-500 hover:bg-yellow-600 transition-colors"></button>
+                    <button className="h-8 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"></button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>

@@ -130,8 +130,14 @@ const Statistics = () => {
                   mode="range"
                   selected={{ from: fromDate, to: toDate }}
                   onSelect={(range) => {
-                    if (range?.from) setFromDate(range.from);
-                    if (range?.to) setToDate(range.to);
+                    if (range?.from) {
+                      setFromDate(range.from);
+                      if (range?.to) {
+                        setToDate(range.to);
+                      } else {
+                        setToDate(range.from);
+                      }
+                    }
                   }}
                   disabled={(date) => date > new Date()}
                   initialFocus
