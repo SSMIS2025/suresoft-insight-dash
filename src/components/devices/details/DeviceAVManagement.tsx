@@ -83,19 +83,61 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                 variant="ghost" 
                 size="icon"
                 onClick={() => setHdmiConnected(!hdmiConnected)}
+                className="hover-scale"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-center py-8 ${
-              hdmiConnected ? 'text-green-600' : 'text-red-600'
-            }`}>
-              <div className="text-4xl mb-2">📺</div>
-              <p className="font-semibold">
-                {hdmiConnected ? "HDMI Connected" : "HDMI Not Connected"}
-              </p>
+            <div className="flex items-center justify-center py-6 gap-4">
+              {/* STB Icon */}
+              <div className="flex flex-col items-center">
+                <svg className="w-16 h-16 text-primary" viewBox="0 0 64 64" fill="currentColor">
+                  <rect x="8" y="24" width="48" height="24" rx="2" />
+                  <rect x="20" y="28" width="8" height="4" fill="hsl(var(--background))" />
+                  <circle cx="38" cy="36" r="2" fill="hsl(var(--background))" />
+                  <circle cx="44" cy="36" r="2" fill="hsl(var(--background))" />
+                  <rect x="12" y="48" width="40" height="2" />
+                </svg>
+                <p className="text-xs mt-2 font-medium">STB</p>
+              </div>
+
+              {/* Connection Line with Status */}
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <div className="w-20 h-1 bg-muted"></div>
+                  <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center ${
+                    hdmiConnected ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {hdmiConnected ? (
+                      <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <p className={`text-xs mt-6 font-semibold ${
+                  hdmiConnected ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {hdmiConnected ? "HDMI is Connected" : "HDMI Not Connected"}
+                </p>
+              </div>
+
+              {/* Computer Icon */}
+              <div className="flex flex-col items-center">
+                <svg className="w-16 h-16 text-secondary" viewBox="0 0 64 64" fill="currentColor">
+                  <rect x="8" y="12" width="48" height="32" rx="2" />
+                  <rect x="12" y="16" width="40" height="24" fill="hsl(var(--background))" />
+                  <rect x="20" y="44" width="24" height="2" />
+                  <rect x="16" y="46" width="32" height="4" rx="1" />
+                </svg>
+                <p className="text-xs mt-2 font-medium">Display</p>
+              </div>
             </div>
           </CardContent>
         </Card>
