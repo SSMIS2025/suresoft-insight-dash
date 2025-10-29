@@ -9,6 +9,8 @@ import { FileSpreadsheet, Search, Edit, Trash2, Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 // Mock data
 const mockLocationBased = Array.from({ length: 30 }, (_, i) => ({
@@ -34,6 +36,8 @@ const Group = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
+  const [locationBasedData, setLocationBasedData] = useState(mockLocationBased);
+  const [userDefinedData, setUserDefinedData] = useState(mockUserDefined);
 
   return (
     <>
@@ -44,11 +48,11 @@ const Group = () => {
         </TabsList>
 
         <TabsContent value="location-based">
-          <GroupTable data={mockLocationBased} type="location" />
+          <GroupTable data={locationBasedData} setData={setLocationBasedData} type="location" />
         </TabsContent>
 
         <TabsContent value="user-defined">
-          <GroupTable data={mockUserDefined} type="user-defined" onCreateClick={() => setShowCreateModal(true)} />
+          <GroupTable data={userDefinedData} setData={setUserDefinedData} type="user-defined" onCreateClick={() => setShowCreateModal(true)} />
         </TabsContent>
       </Tabs>
 
@@ -77,15 +81,43 @@ const Group = () => {
   );
 };
 
-const GroupTable = ({ data, type, onCreateClick }: any) => {
+const GroupTable = ({ data, setData, type, onCreateClick }: any) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const { toast } = useToast();
 
   const filteredData = searchTerm ? data.filter((item: any) => 
     JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
   ) : data;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, type === "location" ? "Location Based" : "User Defined");
+    XLSX.writeFile(workbook, `${type === "location" ? "location_based" : "user_defined"}_groups.xlsx`);
+    toast({ title: "Export Successful", description: "Groups data exported successfully" });
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingItem({ ...item });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    setData(data.map((d: any) => d.id === editingItem.id ? editingItem : d));
+    toast({ title: "Success", description: "Group updated successfully" });
+    setShowEditModal(false);
+    setEditingItem(null);
+  };
+
+  const handleDelete = (itemId: number) => {
+    setData(data.filter((d: any) => d.id !== itemId));
+    toast({ title: "Success", description: "Group deleted successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -129,7 +161,7 @@ const GroupTable = ({ data, type, onCreateClick }: any) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
           {type === "user-defined" && (
@@ -187,10 +219,10 @@ const GroupTable = ({ data, type, onCreateClick }: any) => {
                 {type === "user-defined" && (
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -240,6 +272,43 @@ const GroupTable = ({ data, type, onCreateClick }: any) => {
           </div>
         </div>
       </div>
+
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{type === "location" ? "Location" : "Name"}</Label>
+              <Input 
+                value={type === "location" ? editingItem?.location || "" : editingItem?.name || ""} 
+                onChange={(e) => setEditingItem({ ...editingItem, [type === "location" ? "location" : "name"]: e.target.value })} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input value={editingItem?.description || ""} onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })} />
+            </div>
+            {type === "location" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Landing Channel</Label>
+                  <Input value={editingItem?.landingChannel || ""} onChange={(e) => setEditingItem({ ...editingItem, landingChannel: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Boot Ad</Label>
+                  <Input value={editingItem?.bootAd || ""} onChange={(e) => setEditingItem({ ...editingItem, bootAd: e.target.value })} />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

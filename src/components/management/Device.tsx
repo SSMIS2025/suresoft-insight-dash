@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { FileSpreadsheet, Search, Trash2, Upload, Plus } from "lucide-react";
+import { FileSpreadsheet, Search, Trash2, Upload, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 // Mock data
 const mockAllDevices = Array.from({ length: 40 }, (_, i) => ({
@@ -42,6 +44,47 @@ const Device = () => {
   const [activeTab, setActiveTab] = useState("all-devices");
   const [showImportModal, setShowImportModal] = useState(false);
   const [fileFormat, setFileFormat] = useState("csv");
+  const [allDevicesData, setAllDevicesData] = useState(mockAllDevices);
+  const [deployedDevicesData, setDeployedDevicesData] = useState(mockAllDevices);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        const newDevices = jsonData.map((row: any, idx) => ({
+          id: deployedDevicesData.length + idx + 1,
+          status: "Active",
+          stbId: row.stbId || row.STBId || `STB${1000 + idx}`,
+          deviceId: row.deviceId || row.DeviceId || `DEV${2000 + idx}`,
+          macAddress: row.macAddress || row.MACAddress || "",
+          model: row.model || row.Model || "",
+          fwVersion: row.fwVersion || row.FWVersion || "",
+          customer: row.customer || row.Customer || "",
+          retailer: row.retailer || row.Retailer || "",
+          manufacturer: row.manufacturer || row.Manufacturer || "",
+          dateAdded: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, ''),
+          dateDeployed: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '')
+        }));
+        
+        setDeployedDevicesData([...deployedDevicesData, ...newDevices]);
+        toast({ title: "Import Successful", description: `${newDevices.length} devices imported successfully` });
+        setShowImportModal(false);
+      } catch (error) {
+        toast({ title: "Import Failed", description: "Failed to import file", variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   return (
     <>
@@ -53,11 +96,11 @@ const Device = () => {
         </TabsList>
 
         <TabsContent value="all-devices">
-          <DeviceTable data={mockAllDevices} type="all" />
+          <DeviceTable data={allDevicesData} setData={setAllDevicesData} type="all" />
         </TabsContent>
 
         <TabsContent value="deployed">
-          <DeviceTable data={mockAllDevices} type="deployed" onImportClick={() => setShowImportModal(true)} />
+          <DeviceTable data={deployedDevicesData} setData={setDeployedDevicesData} type="deployed" onImportClick={() => setShowImportModal(true)} />
         </TabsContent>
 
         <TabsContent value="bulk-history">
@@ -68,67 +111,46 @@ const Device = () => {
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Import Deployed Devices</DialogTitle>
+            <DialogTitle>Import File</DialogTitle>
+            <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={() => setShowImportModal(false)}>
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>File Format</Label>
-              <RadioGroup value={fileFormat} onValueChange={setFileFormat}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv">CSV (UTF-8 Only)</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label>Excel Template</Label>
-              <Button variant="outline" size="sm">Download</Button>
-            </div>
-            <div className="space-y-2">
-              <Label>Upload File</Label>
-              <Input type="file" accept=".csv" />
-            </div>
-            <div className="space-y-2">
-              <Label>Preview</Label>
-              <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">250</div>
-                  <div className="text-xs text-muted-foreground">Total</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">200</div>
-                  <div className="text-xs text-muted-foreground">Ready</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">30</div>
-                  <div className="text-xs text-muted-foreground">Conflict</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">20</div>
-                  <div className="text-xs text-muted-foreground">Invalid</div>
-                </div>
-              </div>
+              <Label>File</Label>
+              <Input type="file" accept=".xlsx,.xls" ref={fileInputRef} onChange={handleImport} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowImportModal(false)}>Cancel</Button>
-            <Button onClick={() => setShowImportModal(false)}>Import</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 };
 
-const DeviceTable = ({ data, type, onImportClick }: any) => {
+const DeviceTable = ({ data, setData, type, onImportClick }: any) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredData = searchTerm ? data.filter((item: any) => 
     JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
   ) : data;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, type === "all" ? "All Devices" : "Deployed");
+    XLSX.writeFile(workbook, `${type === "all" ? "all_devices" : "deployed_devices"}.xlsx`);
+    toast({ title: "Export Successful", description: "Devices data exported successfully" });
+  };
+
+  const handleDelete = (itemId: number) => {
+    setData(data.filter((d: any) => d.id !== itemId));
+    toast({ title: "Success", description: "Device deleted successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -172,12 +194,12 @@ const DeviceTable = ({ data, type, onImportClick }: any) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
           {type === "deployed" && (
             <>
-              <Button variant="outline" size="icon" onClick={onImportClick}>
+              <Button variant="outline" size="icon" onClick={onImportClick} title="Import">
                 <Upload className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="icon">
@@ -241,7 +263,7 @@ const DeviceTable = ({ data, type, onImportClick }: any) => {
                 <TableCell>{item.dateAdded}</TableCell>
                 <TableCell>{item.dateDeployed}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
@@ -298,10 +320,19 @@ const BulkHistoryTable = ({ data }: any) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredData = searchTerm ? data.filter((item: any) => 
     JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
   ) : data;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk History");
+    XLSX.writeFile(workbook, "bulk_upload_history.xlsx");
+    toast({ title: "Export Successful", description: "Bulk history data exported successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -345,7 +376,7 @@ const BulkHistoryTable = ({ data }: any) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => setShowSearch(!showSearch)}>

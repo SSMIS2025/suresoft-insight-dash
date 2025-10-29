@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { FileSpreadsheet, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 // Mock data
 const mockData = Array.from({ length: 35 }, (_, i) => ({
@@ -27,10 +29,19 @@ const OutsideIndiaDevice = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredData = searchTerm ? mockData.filter((item) => 
     JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
   ) : mockData;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(mockData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Outside India");
+    XLSX.writeFile(workbook, "outside_india_devices.xlsx");
+    toast({ title: "Export Successful", description: "Outside India devices data exported successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -74,7 +85,7 @@ const OutsideIndiaDevice = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => setShowSearch(!showSearch)}>

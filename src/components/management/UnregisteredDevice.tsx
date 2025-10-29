@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { FileSpreadsheet, Search, Plus, Lock, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 // Mock data
 const mockData = Array.from({ length: 28 }, (_, i) => ({
@@ -25,10 +27,19 @@ const UnregisteredDevice = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAll, setSelectedAll] = useState(false);
+  const { toast } = useToast();
 
   const filteredData = searchTerm ? mockData.filter((item) => 
     JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
   ) : mockData;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(mockData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Unregistered");
+    XLSX.writeFile(workbook, "unregistered_devices.xlsx");
+    toast({ title: "Export Successful", description: "Unregistered devices data exported successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -72,7 +83,7 @@ const UnregisteredDevice = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => setShowSearch(!showSearch)}>

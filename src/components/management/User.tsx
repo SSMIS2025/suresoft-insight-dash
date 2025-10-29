@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { FileSpreadsheet, Upload, Search, Edit, Trash2 } from "lucide-react";
+import { FileSpreadsheet, Upload, Search, Edit, Trash2, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 // Mock data
 const mockUsers = Array.from({ length: 50 }, (_, i) => ({
@@ -19,10 +23,70 @@ const User = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [users, setUsers] = useState(mockUsers);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const filteredData = searchTerm
-    ? mockUsers.filter(user => user.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    : mockUsers;
+    ? users.filter(user => user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    : users;
+
+  const handleExport = () => {
+    const worksheet = XLSX.utils.json_to_sheet(users);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+    XLSX.writeFile(workbook, "users_export.xlsx");
+    toast({ title: "Export Successful", description: "Users data exported successfully" });
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        const newUsers = jsonData.map((row: any, idx) => ({
+          id: users.length + idx + 1,
+          email: row.email || row.Email || "",
+          role: row.role || row.Role || "User",
+          dateModified: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '')
+        }));
+        
+        setUsers([...users, ...newUsers]);
+        toast({ title: "Import Successful", description: `${newUsers.length} users imported successfully` });
+        setShowImportModal(false);
+      } catch (error) {
+        toast({ title: "Import Failed", description: "Failed to import file", variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleEdit = (user: any) => {
+    setEditingUser({ ...user });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+    toast({ title: "Success", description: "User updated successfully" });
+    setShowEditModal(false);
+    setEditingUser(null);
+  };
+
+  const handleDelete = (userId: number) => {
+    setUsers(users.filter(u => u.id !== userId));
+    toast({ title: "Success", description: "User deleted successfully" });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -66,10 +130,10 @@ const User = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExport} title="Export">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={() => setShowImportModal(true)} title="Import">
             <Upload className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => setShowSearch(!showSearch)}>
@@ -106,10 +170,10 @@ const User = () => {
                 <TableCell>{user.dateModified}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -158,6 +222,54 @@ const User = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import File</DialogTitle>
+            <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={() => setShowImportModal(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>File</Label>
+              <Input type="file" accept=".xlsx,.xls" ref={fileInputRef} onChange={handleImport} />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={editingUser?.email || ""} onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={editingUser?.role || ""} onValueChange={(v) => setEditingUser({ ...editingUser, role: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Moderator">Moderator</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
