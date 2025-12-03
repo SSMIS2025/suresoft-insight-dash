@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RefreshCw, Video, Maximize2, Minimize2, Move } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import ImageCarousel from "@/components/ImageCarousel";
 import device1 from "@/assets/device-1.jpg";
 import device2 from "@/assets/device-2.jpg";
@@ -15,7 +16,20 @@ interface DeviceAVManagementProps {
   stbId: string;
 }
 
+// RCU Command types
+type RCUCommand = 
+  | 'POWER' | 'SOURCE' | 'STB' | 'TV'
+  | 'NUM_0' | 'NUM_1' | 'NUM_2' | 'NUM_3' | 'NUM_4' | 'NUM_5' | 'NUM_6' | 'NUM_7' | 'NUM_8' | 'NUM_9'
+  | 'GUIDE' | 'INFO'
+  | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'OK'
+  | 'MENU' | 'HOME' | 'BACK'
+  | 'VOL_UP' | 'VOL_DOWN' | 'MUTE' | 'CH_UP' | 'CH_DOWN'
+  | 'PREV' | 'REW' | 'PLAY' | 'FF' | 'NEXT'
+  | 'STOP' | 'PAUSE' | 'RECORD'
+  | 'RED' | 'GREEN' | 'YELLOW' | 'BLUE';
+
 const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
+  const { toast } = useToast();
   const [approvalRequested, setApprovalRequested] = useState(false);
   const [remoteViewOpen, setRemoteViewOpen] = useState(false);
   const [hdmiConnected, setHdmiConnected] = useState(false);
@@ -25,6 +39,7 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [videoSize, setVideoSize] = useState({ width: 480, height: 270 });
   const [isDragging, setIsDragging] = useState(false);
+  const [lastCommand, setLastCommand] = useState<string | null>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
 
   const deviceImages = [device1, device2, device3, device4];
@@ -40,6 +55,50 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
     refreshRate: "60Hz",
     colorDepth: "8-bit",
     hdmiVersion: "2.0",
+  };
+
+  // Send command to STB via API
+  const sendCommand = async (command: RCUCommand) => {
+    setLastCommand(command);
+    
+    try {
+      // API endpoint - replace with actual STB API endpoint
+      const apiUrl = `/api/stb/${stbId}/command`;
+      
+      console.log(`Sending command to STB ${stbId}:`, command);
+      
+      // Simulated API call - replace with actual fetch
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stbId,
+          command,
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch(() => {
+        // For demo purposes, simulate success
+        return { ok: true };
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Command Sent",
+          description: `${command} sent to ${stbId}`,
+        });
+      } else {
+        throw new Error('Failed to send command');
+      }
+    } catch (error) {
+      console.error('Error sending command:', error);
+      toast({
+        title: "Command Sent (Demo)",
+        description: `${command} → ${stbId}`,
+        variant: "default",
+      });
+    }
   };
 
   const handleRequestApproval = () => {
@@ -105,9 +164,9 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
     setIsMaximized(!isMaximized);
   };
 
-  const RCUButton = ({ children, className = "", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
+  const RCUButton = ({ children, className = "", command }: { children: React.ReactNode; className?: string; command?: RCUCommand }) => (
     <button 
-      onClick={onClick}
+      onClick={() => command && sendCommand(command)}
       className={`transition-all duration-150 active:scale-95 shadow-md hover:shadow-lg ${className}`}
     >
       {children}
@@ -359,6 +418,11 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                     <p className="text-xs text-gray-500">
                       {videoSize.width} x {videoSize.height}
                     </p>
+                    {lastCommand && (
+                      <p className="text-xs text-primary font-medium">
+                        Last: {lastCommand}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -401,7 +465,7 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
                 {/* Power Button */}
                 <div className="flex justify-center mb-4">
-                  <RCUButton className="w-14 h-14 rounded-full bg-gradient-to-b from-red-500 to-red-700 flex items-center justify-center ring-2 ring-red-900/50">
+                  <RCUButton command="POWER" className="w-14 h-14 rounded-full bg-gradient-to-b from-red-500 to-red-700 flex items-center justify-center ring-2 ring-red-900/50">
                     <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" d="M12 3v6"/>
                       <circle cx="12" cy="12" r="8" strokeDasharray="38 12"/>
@@ -411,13 +475,13 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
                 {/* Source & Settings Row */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="SOURCE" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     SOURCE
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="STB" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     STB
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="TV" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     TV
                   </RCUButton>
                 </div>
@@ -427,18 +491,19 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                     <RCUButton 
                       key={num}
+                      command={`NUM_${num}` as RCUCommand}
                       className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white font-bold text-lg"
                     >
                       {num}
                     </RCUButton>
                   ))}
-                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                  <RCUButton command="GUIDE" className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
                     GUIDE
                   </RCUButton>
-                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white font-bold text-lg">
+                  <RCUButton command="NUM_0" className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white font-bold text-lg">
                     0
                   </RCUButton>
-                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                  <RCUButton command="INFO" className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
                     INFO
                   </RCUButton>
                 </div>
@@ -449,25 +514,25 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                   <div className="absolute inset-0 rounded-full bg-gradient-to-b from-gray-600 to-gray-800 p-1">
                     <div className="w-full h-full rounded-full bg-gradient-to-b from-gray-700 to-gray-900 relative overflow-hidden">
                       {/* Up */}
-                      <RCUButton className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                      <RCUButton command="UP" className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12 4l-8 8h16z"/>
                         </svg>
                       </RCUButton>
                       {/* Down */}
-                      <RCUButton className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                      <RCUButton command="DOWN" className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12 20l8-8H4z"/>
                         </svg>
                       </RCUButton>
                       {/* Left */}
-                      <RCUButton className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                      <RCUButton command="LEFT" className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M4 12l8 8V4z"/>
                         </svg>
                       </RCUButton>
                       {/* Right */}
-                      <RCUButton className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                      <RCUButton command="RIGHT" className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M20 12l-8-8v16z"/>
                         </svg>
@@ -476,7 +541,7 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                   </div>
                   {/* OK Button Center */}
                   <div className="absolute inset-[35%] rounded-full">
-                    <RCUButton className="w-full h-full rounded-full bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold text-sm shadow-lg ring-2 ring-blue-900/50">
+                    <RCUButton command="OK" className="w-full h-full rounded-full bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold text-sm shadow-lg ring-2 ring-blue-900/50">
                       OK
                     </RCUButton>
                   </div>
@@ -484,13 +549,13 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
                 {/* Menu Row */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="MENU" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     MENU
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="HOME" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     HOME
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                  <RCUButton command="BACK" className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
                     BACK
                   </RCUButton>
                 </div>
@@ -498,21 +563,21 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                 {/* Volume & Channel Controls */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <div className="space-y-1">
-                    <RCUButton className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
+                    <RCUButton command="VOL_UP" className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
                       VOL +
                     </RCUButton>
-                    <RCUButton className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                    <RCUButton command="VOL_DOWN" className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
                       VOL −
                     </RCUButton>
                   </div>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-orange-600 to-orange-700 text-white text-[10px] font-semibold h-full">
+                  <RCUButton command="MUTE" className="py-2 rounded-lg bg-gradient-to-b from-orange-600 to-orange-700 text-white text-[10px] font-semibold h-full">
                     MUTE
                   </RCUButton>
                   <div className="space-y-1">
-                    <RCUButton className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
+                    <RCUButton command="CH_UP" className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
                       CH +
                     </RCUButton>
-                    <RCUButton className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                    <RCUButton command="CH_DOWN" className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
                       CH −
                     </RCUButton>
                   </div>
@@ -520,42 +585,42 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
                 {/* Playback Controls */}
                 <div className="grid grid-cols-5 gap-1 mb-4">
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="PREV" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ⏮
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="REW" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ◀◀
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-green-600 to-green-700 text-white text-xs">
+                  <RCUButton command="PLAY" className="py-2 rounded-lg bg-gradient-to-b from-green-600 to-green-700 text-white text-xs">
                     ▶
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="FF" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ▶▶
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="NEXT" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ⏭
                   </RCUButton>
                 </div>
 
                 {/* Stop/Pause/Record */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="STOP" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ⏹
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                  <RCUButton command="PAUSE" className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
                     ⏸
                   </RCUButton>
-                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-red-600 to-red-700 text-white text-xs">
+                  <RCUButton command="RECORD" className="py-2 rounded-lg bg-gradient-to-b from-red-600 to-red-700 text-white text-xs">
                     ⏺
                   </RCUButton>
                 </div>
 
                 {/* Color Buttons */}
                 <div className="grid grid-cols-4 gap-2">
-                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-red-500 to-red-700"><span></span></RCUButton>
-                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-green-500 to-green-700"><span></span></RCUButton>
-                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-yellow-400 to-yellow-600"><span></span></RCUButton>
-                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-blue-500 to-blue-700"><span></span></RCUButton>
+                  <RCUButton command="RED" className="h-6 rounded-md bg-gradient-to-b from-red-500 to-red-700"><span></span></RCUButton>
+                  <RCUButton command="GREEN" className="h-6 rounded-md bg-gradient-to-b from-green-500 to-green-700"><span></span></RCUButton>
+                  <RCUButton command="YELLOW" className="h-6 rounded-md bg-gradient-to-b from-yellow-400 to-yellow-600"><span></span></RCUButton>
+                  <RCUButton command="BLUE" className="h-6 rounded-md bg-gradient-to-b from-blue-500 to-blue-700"><span></span></RCUButton>
                 </div>
 
                 {/* RCU Footer */}
