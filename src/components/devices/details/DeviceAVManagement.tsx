@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RefreshCw, Video } from "lucide-react";
+import { RefreshCw, Video, Maximize2, Minimize2, Move } from "lucide-react";
 import ImageCarousel from "@/components/ImageCarousel";
 import device1 from "@/assets/device-1.jpg";
 import device2 from "@/assets/device-2.jpg";
@@ -22,6 +22,10 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
   const [osdMessage, setOsdMessage] = useState("");
   const [osdType, setOsdType] = useState("info");
   const [timeRemaining, setTimeRemaining] = useState(60);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [videoSize, setVideoSize] = useState({ width: 480, height: 270 });
+  const [isDragging, setIsDragging] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
 
   const deviceImages = [device1, device2, device3, device4];
 
@@ -45,7 +49,6 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
     setApprovalRequested(true);
     setTimeRemaining(60);
     
-    // Countdown timer
     const countdownInterval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -57,7 +60,6 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
       });
     }, 1000);
     
-    // Simulate approval after 5 seconds
     setTimeout(() => {
       clearInterval(countdownInterval);
       setRemoteViewOpen(true);
@@ -68,8 +70,49 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
   const handleSendOSD = () => {
     console.log("Sending OSD:", osdType, osdMessage);
-    // Implement OSD send logic
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = videoSize.width;
+    const startHeight = videoSize.height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const newWidth = Math.max(320, Math.min(960, startWidth + (moveEvent.clientX - startX)));
+      const newHeight = Math.max(180, Math.min(540, startHeight + (moveEvent.clientY - startY)));
+      setVideoSize({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const toggleMaximize = () => {
+    if (isMaximized) {
+      setVideoSize({ width: 480, height: 270 });
+    } else {
+      setVideoSize({ width: 960, height: 540 });
+    }
+    setIsMaximized(!isMaximized);
+  };
+
+  const RCUButton = ({ children, className = "", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
+    <button 
+      onClick={onClick}
+      className={`transition-all duration-150 active:scale-95 shadow-md hover:shadow-lg ${className}`}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <div className="space-y-6">
@@ -121,7 +164,6 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-6 gap-4">
-              {/* STB Icon */}
               <div className="flex flex-col items-center">
                 <svg className="w-16 h-16 text-primary" viewBox="0 0 64 64" fill="currentColor">
                   <rect x="8" y="24" width="48" height="24" rx="2" />
@@ -133,7 +175,6 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                 <p className="text-xs mt-2 font-medium">STB</p>
               </div>
 
-              {/* Connection Line with Status */}
               <div className="flex flex-col items-center">
                 <div className="relative">
                   <div className="w-20 h-1 bg-muted"></div>
@@ -158,7 +199,6 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
                 </p>
               </div>
 
-              {/* Computer Icon */}
               <div className="flex flex-col items-center">
                 <svg className="w-16 h-16 text-secondary" viewBox="0 0 64 64" fill="currentColor">
                   <rect x="8" y="12" width="48" height="32" rx="2" />
@@ -283,106 +323,244 @@ const DeviceAVManagement = ({ stbId }: DeviceAVManagementProps) => {
 
       {/* Remote View Dialog */}
       <Dialog open={remoteViewOpen} onOpenChange={setRemoteViewOpen}>
-        <DialogContent className="max-w-7xl">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Remote View - {stbId}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5 text-primary" />
+              Remote View - {stbId}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Video Stream - Left Side */}
-            <div className="lg:col-span-2">
-              <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg flex items-center justify-center border-2 border-primary/20">
-                <div className="text-center space-y-4">
-                  <Video className="h-16 w-16 mx-auto text-primary animate-pulse" />
-                  <p className="text-lg font-medium">Remote view stream would appear here</p>
-                  <p className="text-sm text-muted-foreground">
-                    Streaming via MQTT protocol → Server → WebSocket → Client
-                  </p>
+          
+          <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
+            {/* Resizable Video Stream Container */}
+            <div className="relative">
+              <div 
+                ref={resizeRef}
+                className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden border-4 border-gray-700 shadow-2xl transition-all duration-300"
+                style={{ 
+                  width: videoSize.width, 
+                  height: videoSize.height,
+                }}
+              >
+                {/* Video Header Bar */}
+                <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-r from-gray-800 to-gray-700 flex items-center justify-between px-3 z-10">
+                  <span className="text-xs text-gray-300 font-medium">Live Stream</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span className="text-xs text-gray-400">REC</span>
+                  </div>
                 </div>
+                
+                {/* Video Content */}
+                <div className="absolute inset-0 pt-8 flex items-center justify-center">
+                  <div className="text-center space-y-3">
+                    <Video className="h-12 w-12 mx-auto text-primary/60 animate-pulse" />
+                    <p className="text-sm font-medium text-gray-300">Remote Stream</p>
+                    <p className="text-xs text-gray-500">
+                      {videoSize.width} x {videoSize.height}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Control Buttons */}
+                <div className="absolute top-10 right-2 flex flex-col gap-2">
+                  <button 
+                    onClick={toggleMaximize}
+                    className="p-2 bg-gray-700/80 hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    {isMaximized ? (
+                      <Minimize2 className="h-4 w-4 text-white" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4 text-white" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Resize Handle */}
+                <div 
+                  onMouseDown={handleMouseDown}
+                  className={`absolute bottom-0 right-0 w-6 h-6 cursor-se-resize flex items-center justify-center bg-gray-600/80 rounded-tl-lg hover:bg-primary/80 transition-colors ${isDragging ? 'bg-primary' : ''}`}
+                >
+                  <Move className="h-3 w-3 text-white rotate-45" />
+                </div>
+              </div>
+              
+              {/* Size Info */}
+              <div className="mt-2 text-center text-xs text-muted-foreground">
+                Drag corner to resize • Click maximize for full size
               </div>
             </div>
 
-            {/* RCU Control - Right Side */}
-            <div className="flex flex-col items-center justify-center">
-              <div className="bg-gradient-to-br from-card to-primary/5 p-6 rounded-2xl border-2 border-primary/30 shadow-lg">
-                <h3 className="text-center font-semibold mb-4 text-primary">Remote Control Unit</h3>
-                
-                {/* RCU Design */}
-                <div className="w-64 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-6 shadow-2xl">
-                  {/* Power Button */}
-                  <div className="flex justify-center mb-6">
-                    <button className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </button>
-                  </div>
+            {/* Realistic RCU */}
+            <div className="flex-shrink-0">
+              <div className="w-56 bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] rounded-[2rem] p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border border-gray-700/50">
+                {/* RCU Top Section with IR Window */}
+                <div className="flex justify-center mb-3">
+                  <div className="w-8 h-2 bg-gradient-to-r from-red-900/50 via-red-600/30 to-red-900/50 rounded-full"></div>
+                </div>
 
-                  {/* Navigation Buttons */}
-                  <div className="grid grid-cols-3 gap-2 mb-6">
-                    <div></div>
-                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
-                      ▲
-                    </button>
-                    <div></div>
-                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
-                      ◄
-                    </button>
-                    <button className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center text-white text-xs font-semibold">
+                {/* Power Button */}
+                <div className="flex justify-center mb-4">
+                  <RCUButton className="w-14 h-14 rounded-full bg-gradient-to-b from-red-500 to-red-700 flex items-center justify-center ring-2 ring-red-900/50">
+                    <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" d="M12 3v6"/>
+                      <circle cx="12" cy="12" r="8" strokeDasharray="38 12"/>
+                    </svg>
+                  </RCUButton>
+                </div>
+
+                {/* Source & Settings Row */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    SOURCE
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    STB
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    TV
+                  </RCUButton>
+                </div>
+
+                {/* Number Pad */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <RCUButton 
+                      key={num}
+                      className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white font-bold text-lg"
+                    >
+                      {num}
+                    </RCUButton>
+                  ))}
+                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                    GUIDE
+                  </RCUButton>
+                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white font-bold text-lg">
+                    0
+                  </RCUButton>
+                  <RCUButton className="w-full h-10 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                    INFO
+                  </RCUButton>
+                </div>
+
+                {/* Navigation Circle */}
+                <div className="relative w-40 h-40 mx-auto mb-4">
+                  {/* Outer Ring */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-b from-gray-600 to-gray-800 p-1">
+                    <div className="w-full h-full rounded-full bg-gradient-to-b from-gray-700 to-gray-900 relative overflow-hidden">
+                      {/* Up */}
+                      <RCUButton className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 4l-8 8h16z"/>
+                        </svg>
+                      </RCUButton>
+                      {/* Down */}
+                      <RCUButton className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 20l8-8H4z"/>
+                        </svg>
+                      </RCUButton>
+                      {/* Left */}
+                      <RCUButton className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M4 12l8 8V4z"/>
+                        </svg>
+                      </RCUButton>
+                      {/* Right */}
+                      <RCUButton className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-gray-300 hover:text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M20 12l-8-8v16z"/>
+                        </svg>
+                      </RCUButton>
+                    </div>
+                  </div>
+                  {/* OK Button Center */}
+                  <div className="absolute inset-[35%] rounded-full">
+                    <RCUButton className="w-full h-full rounded-full bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold text-sm shadow-lg ring-2 ring-blue-900/50">
                       OK
-                    </button>
-                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
-                      ►
-                    </button>
-                    <div></div>
-                    <button className="w-12 h-12 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center text-white font-bold">
-                      ▼
-                    </button>
-                    <div></div>
+                    </RCUButton>
                   </div>
+                </div>
 
-                  {/* Volume and Channel Buttons */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="space-y-2">
-                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
-                        VOL +
-                      </button>
-                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
-                        VOL -
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
-                        CH +
-                      </button>
-                      <button className="w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-sm font-semibold">
-                        CH -
-                      </button>
-                    </div>
-                  </div>
+                {/* Menu Row */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    MENU
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    HOME
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-[10px] font-semibold">
+                    BACK
+                  </RCUButton>
+                </div>
 
-                  {/* Playback Controls */}
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
-                      ⏮
-                    </button>
-                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
-                      ⏸
-                    </button>
-                    <button className="py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors text-white text-xs">
-                      ▶
-                    </button>
-                    <button className="py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-white text-xs">
-                      ⏭
-                    </button>
+                {/* Volume & Channel Controls */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="space-y-1">
+                    <RCUButton className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
+                      VOL +
+                    </RCUButton>
+                    <RCUButton className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                      VOL −
+                    </RCUButton>
                   </div>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-orange-600 to-orange-700 text-white text-[10px] font-semibold h-full">
+                    MUTE
+                  </RCUButton>
+                  <div className="space-y-1">
+                    <RCUButton className="w-full py-2 rounded-t-lg bg-gradient-to-b from-gray-600 to-gray-700 text-white text-xs font-semibold">
+                      CH +
+                    </RCUButton>
+                    <RCUButton className="w-full py-2 rounded-b-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs font-semibold">
+                      CH −
+                    </RCUButton>
+                  </div>
+                </div>
 
-                  {/* Color Buttons */}
-                  <div className="grid grid-cols-4 gap-2">
-                    <button className="h-8 rounded-lg bg-red-600 hover:bg-red-700 transition-colors"></button>
-                    <button className="h-8 rounded-lg bg-green-600 hover:bg-green-700 transition-colors"></button>
-                    <button className="h-8 rounded-lg bg-yellow-500 hover:bg-yellow-600 transition-colors"></button>
-                    <button className="h-8 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"></button>
-                  </div>
+                {/* Playback Controls */}
+                <div className="grid grid-cols-5 gap-1 mb-4">
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ⏮
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ◀◀
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-green-600 to-green-700 text-white text-xs">
+                    ▶
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ▶▶
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ⏭
+                  </RCUButton>
+                </div>
+
+                {/* Stop/Pause/Record */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ⏹
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-gray-700 to-gray-800 text-white text-xs">
+                    ⏸
+                  </RCUButton>
+                  <RCUButton className="py-2 rounded-lg bg-gradient-to-b from-red-600 to-red-700 text-white text-xs">
+                    ⏺
+                  </RCUButton>
+                </div>
+
+                {/* Color Buttons */}
+                <div className="grid grid-cols-4 gap-2">
+                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-red-500 to-red-700"><span></span></RCUButton>
+                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-green-500 to-green-700"><span></span></RCUButton>
+                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-yellow-400 to-yellow-600"><span></span></RCUButton>
+                  <RCUButton className="h-6 rounded-md bg-gradient-to-b from-blue-500 to-blue-700"><span></span></RCUButton>
+                </div>
+
+                {/* RCU Footer */}
+                <div className="mt-4 flex justify-center">
+                  <div className="text-[8px] text-gray-500 font-medium tracking-wider">REMOTE CONTROL</div>
                 </div>
               </div>
             </div>
